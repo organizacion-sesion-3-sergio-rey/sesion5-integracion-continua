@@ -1,36 +1,32 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
-# For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
-
-name: Node.js Package
+name: Ejecución de tests en Node con GitHub Actions
 
 on:
-  release:
-    types: [created]
+  push:
+    # Ejecutar la acción al hacer un push a la rama "master"
+    branches: [ master ]
+  pull_request:
+    # Ejecutar la acción al hacer una pull request a la rama "master"
+    branches: [ master ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16
-      - run: npm ci
-      - run: npm test
+    strategy:
+      # Podemos indicar distintas versiones de Node sobre las que ejecutar los tests
+      matrix:
+        node-version: [12.x, 14.x, 15.x]
 
-  publish-gpr:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16
-          registry-url: https://npm.pkg.github.com/
-      - run: npm ci
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+    # Paso 1: clonar el repositorio
+    - uses: actions/checkout@v2
+    # Paso 2: utilizar la versión de Node correspondiente
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    # npm ci es "clean install", parecido a "npm install" pero con una instalación limpia
+    - run: npm ci
+    # Paso opcional en caso de que haya que hacer algún "build"
+    - run: npm run build --if-present
+    # Ejecución de los tests
+    - run: npm test
